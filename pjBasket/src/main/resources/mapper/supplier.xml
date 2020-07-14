@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mybatis.sql">
+
+<select id="sup_search" parameterType="map" resultType="map">
+SELECT sup_code, sup_name, sup_manager, sup_mgr_tel, sup_email
+    FROM supplier
+    <where>
+    	<if test="sup_name != null and sup_name.length > 0">
+		sup_name LIKE '%'||#{sup_name}||'%'
+   		</if>
+		AND sto_code = #{sto_code}
+    </where>
+    ORDER BY sup_code
+    
+</select>
+
+<select id="sup_detail" parameterType="map" resultType="map">
+SELECT s.sup_code, s.sup_name, s.sup_manager, s.sup_mgr_tel, s.sup_email, sd.sup_ceo, 
+		sd.sup_tel, sd.sup_addr, sd.businesscategory 
+    FROM supplier s JOIN supplier_detail sd
+    ON s.sup_code = sd.sup_code
+    <where>
+		s.sup_code = #{sup_code}
+    </where>
+</select>
+
+<insert id="sup_insert" parameterType="map">
+	INSERT INTO supplier 
+	(sup_code, sto_code, sup_name, sup_manager, sup_mgr_tel, sup_email) 
+           VALUES (seq_sup.NEXTVAL, #{sto_code}, #{sup_name}
+           , #{sup_manager}, #{sup_mgr_tel}, #{sup_email})
+</insert> 
+<insert id="supdt_insert" parameterType="map">
+          INSERT INTO supplier_detail 
+          (sup_code, sup_ceo, sup_tel, sup_addr, businesscategory) 
+          VALUES (seq_sup.CURRVAL, #{sup_ceo}, #{sup_tel}
+          , #{sup_addr}, #{businesscategory})
+</insert> 
+
+<!-- insert procedure test -->
+
+<insert id="proc_sup_insert" statementType="CALLABLE" parameterType="map">
+
+</insert> 
+	
+<update id="sup_update" parameterType="map">
+	UPDATE supplier SET 
+	sup_name= #{sup_name}
+	,sup_manager = #{sup_manager}
+	,sup_mgr_tel = #{sup_mgr_tel}
+	,sup_email = #{sup_email}
+	WHERE sup_code= #{sup_code}
+</update>
+	 
+<update id="supdt_update" parameterType="map">
+	UPDATE supplier_detail SET 
+	sup_ceo= #{sup_ceo}
+	,sup_tel= #{sup_tel}
+	,sup_addr= #{sup_addr} 
+	,businesscategory = #{businesscategory}
+	WHERE sup_code= #{sup_code}
+</update>
+
+<delete id="sup_delete" parameterType="map">
+	DELETE FROM supplier 
+	WHERE sup_code= #{sup_code}
+	and sto_code = #{sto_code} 
+</delete>
+	 
+<delete id="supdt_delete" parameterType="map">
+	DELETE FROM product_detail 
+	WHERE sup_code= #{sup_code}
+</delete>
+
+
+</mapper>

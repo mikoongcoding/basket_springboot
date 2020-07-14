@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper     
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mybatis.sql">
+
+<!-- 	<select id="eve_search" parameterType="map" resultType="map"> -->
+<!-- 		SELECT -->
+<!-- 		eve_code, eve_name, eve_img, eve_start, eve_end -->
+<!-- 		FROM event -->
+<!-- 		WHERE -->
+<!-- 		sto_code = #{sto_code} -->
+<!-- 	</select> -->
+
+<resultMap id="eve_list" type="hashmap"></resultMap>
+<select id="eve_search" parameterType="map" statementType="CALLABLE">
+	{call eve_search(#{sto_code, jdbcType=INTEGER},
+					#{eve_code, jdbcType=INTEGER},
+					 #{eve_search, 
+						jdbcType=CURSOR, 
+						mode=OUT, 
+						javaType=java.sql.ResultSet, 
+						resultMap=eve_list}
+	)
+	}
+</select>
+<!-- 
+	<select id="eve_detail" parameterType="map" resultType="map">
+		SELECT
+		eve_code, sto_code, eve_name, eve_img, eve_des, eve_start, eve_end,
+		eve_detail_img, discount_for, discount_price
+		FROM event
+		WHERE eve_code = #{eve_code}
+	</select>
+ -->
+ 
+<resultMap id="eve_dlist" type="hashmap"></resultMap>
+<select id="eve_detail" parameterType="map" statementType="CALLABLE">
+	{call eve_search(#{sto_code, jdbcType=INTEGER},
+					#{eve_code, jdbcType=INTEGER},
+					 #{eve_detail, 
+						jdbcType=CURSOR, 
+						mode=OUT, 
+						javaType=java.sql.ResultSet, 
+						resultMap=eve_dlist}
+	)
+	}
+</select>
+	
+	
+	<insert id="eve_insert" parameterType="map">
+		<selectKey keyProperty="eve_code" resultType="int" order="BEFORE">
+			SELECT seq_eve.nextval From DUAL
+		</selectKey>
+		INSERT INTO event
+		(eve_code, sto_code, eve_name, eve_img, eve_des,
+		eve_start, eve_end,
+		eve_detail_img, discount_for, discount_price, is_del)
+		VALUES(#{eve_code},
+		#{sto_code}, #{eve_name}, #{eve_img}, #{eve_des},
+		#{eve_start},
+		#{eve_end}, #{eve_detail_img}, #{discount_for}, #{discount_price}, 1)
+	</insert>
+
+
+	<!-- 최대 3건 <insert id="add_coupon" parameterType="map"> <selectKey keyProperty="coupon_code" 
+		resultType="int" order="BEFORE"> SELECT SEQ_COUPON_CODE.NEXTVAL From DUAL 
+		</selectKey> INSERT INTO coupon(coupon_code, eve_code, coupon_name, coupon_des, 
+		discount_price, discount_for, coupon_img) VALUES (#{coupon_code}, #{eve_code}, 
+		#{coupon_name}, #{coupon_des}, #{discount_price}, #{discount_for}, #{coupon_img}) 
+		</insert> -->
+
+	<!-- <insert id="add_coupon2" parameterType="map"> INSERT INTO coupon(coupon_code, 
+		eve_code, coupon_name, coupon_des, discount_price, discount_for, coupon_img) 
+		VALUES (seq_coupon_code.NEXTVAL, seq_event_code.CURRVAL, #{coupon_name}, 
+		#{coupon_des}, #{discount_price}, #{discount_for2}, #{coupon_img2}) </insert> 
+		<insert id="add_coupon3" parameterType="map"> INSERT INTO coupon(coupon_code, 
+		eve_code, coupon_name, coupon_des, discount_price, discount_for, coupon_img) 
+		VALUES (seq_coupon_code.NEXTVAL, seq_event_code.CURRVAL, #{coupon_name}, 
+		#{coupon_des}, #{discount_price}, #{discount_for3}, #{coupon_img3}) </insert> -->
+
+
+
+	<update id="eve_update" parameterType="map">
+		UPDATE event SET
+		<if test="eve_name!=null">
+			eve_name = #{eve_name},
+		</if>
+		<if test="eve_img!=null">
+			eve_img = #{eve_img},
+		</if>
+		<if test="eve_des!=null">
+			eve_des = #{eve_des},
+		</if>
+		<if test="eve_start!=null">
+			eve_start = #{eve_start},
+		</if>
+		<if test="eve_end!=null">
+			eve_end = #{eve_end},
+		</if>
+		<if test="eve_detail_img!=null">
+			eve_detail_img = #{eve_detail_img},
+		</if>
+		<if test="discount_for!=null">
+			discount_for = #{discount_for},
+		</if>
+		<if test="discount_price!=null">
+			discount_price = #{discount_price}
+		</if>
+
+		<where>
+			and eve_code = #{eve_code}
+		</where>
+	</update>
+
+	<update id="eve_delete" parameterType="map">
+		UPDATE event SET
+		is_del = 0
+		<where>
+			and eve_code = #{eve_code}
+		</where>
+	</update>
+</mapper>

@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mybatis.sql">
+
+	<select id="find_event" parameterType="map" resultType="map">
+		SELECT E.eve_code, eve_name, eve_des, s.sto_name, eve_start, eve_end,
+		discount_for, discount_price
+		FROM event E JOIN STORE s
+		ON E.sto_code =
+		s.sto_code
+		<where>
+			AND TO_CHAR(sysdate, 'YYYY/MM/DD') BETWEEN E.eve_start AND
+			E.eve_end
+			AND s.sto_code = #{sto_code}
+			AND E.discount_for &lt;=
+			#{total_price, jdbcType=INTEGER}
+		</where>
+
+	</select>
+	
+	<select id="payList" parameterType="map" resultType="map">
+		SELECT -pay_ea pro_stock_ea, pro_code  from payment_detail where pay_code = #{pay_code}
+	</select>
+
+	<select id="pay_res" parameterType="map" resultType="map">
+		SELECT
+		P.pay_code, decode(count(pd.pay_code), 1, max(pro_name) || sum(pay_ea)
+		|| 'ea', MAX(pro_name) ||' 외 ' || (COUNT(pd.pay_code) - 1) || ' 건 ')
+		pro_name
+		,P.pay_value, P.pay_status, P.pay_date
+		FROM payment P
+		JOIN payment_detail pd
+		ON P.pay_code = pd.pay_code
+		JOIN product pro
+		ON pd.pro_code = pro.pro_code
+		WHERE P.pay_code = #{pay_code}
+		GROUP BY P.pay_status, P.pay_date, P.pay_code, pay_value, P.pay_status
+	</select>
+
+	<update id="pay_complete" parameterType="map">
+		UPDATE payment SET
+		pay_status = '결제완료'
+		WHERE pay_code = #{pay_code}
+	</update>
+	<select id="pay_value" parameterType="map" resultType="int">
+		SELECT pay_value
+		FROM payment
+		<where>
+			AND pay_code = #{pay_code}
+			AND pay_status = '결제중'
+		</where>
+	</select>
+
+	<update id="total_update" parameterType="map">
+		UPDATE payment SET
+		pay_value = #{pay_value}
+		WHERE pay_code = #{pay_code}
+	</update>
+
+	<select id="pay_code" resultType="int">
+		SELECT seq_pay.nextval
+		FROM dual
+	</select>
+	<insert id="pay_insert" parameterType="map">
+		INSERT INTO payment
+		(mem_code, pay_date, pay_method, pay_status,
+		pay_code, sto_code)
+		VALUES(#{mem_code},
+
+		to_char(sysdate, 'YYYY/MM/DD')
+		<!-- 
+		#{p_date}
+		 -->
+
+		,#{pay_method},
+		#{pay_status}, #{pay_code}, #{sto_code})
+	</insert>
+	<insert id="payd_insert" useGeneratedKeys="true"
+		keyProperty="pro_price" parameterType="map">
+		<selectKey keyProperty="pro_price" resultType="int"
+			order="BEFORE">
+			SELECT
+			pro_price
+			FROM product
+			where pro_code = #{pro_code}
+		</selectKey>
+		INSERT INTO
+		payment_detail (pro_price, pay_ea, pro_code, pay_code)
+		VALUES(#{pro_price}, #{pay_ea}, #{pro_code}, #{pay_code})
+	</insert>
+	
+	
+	<insert id="test" useGeneratedKeys="true" keyProperty="price"
+		parameterType="map">
+		<selectKey keyProperty="price" resultType="int"
+			order="BEFORE">
+			SELECT #{num} * 2 price
+			FROM dual
+		</selectKey>
+		INSERT INTO test (no)
+		VALUES(#{price})
+	</insert>
+	
+	
+	<!-- procedure -->
+	<update id="apply_coupon" parameterType="map"
+		statementType="CALLABLE">
+		{call apply_coupon(
+		#{pay_code}, #{total}, #{mem_code},
+		#{eve_code}, #{d_price,mode=OUT,jdbcType=INTEGER}
+		)}
+	</update>
+
+
+	<insert id="finish_pay" parameterType="map">
+		INSERT INTO payment
+		(mem_code, pay_date, pay_method, pay_status, pay_code, sto_code)
+		VALUES(#{mem_code}, to_char(sysdate, 'YYYY/MM/DD'), #{pay_method},
+		#{pay_status}, #{pay_code}, #{sto_code})
+	</insert>
+
+	<insert id="finish_payInsert" useGeneratedKeys="true"
+		keyProperty="pro_price" parameterType="map">
+		<selectKey keyProperty="pro_price" resultType="int"
+			order="BEFORE">
+			SELECT
+			pro_price
+			FROM product
+			where pro_code = #{pro_code}
+		</selectKey>
+		INSERT INTO
+		payment_detail (pro_price, pay_ea, pro_code, pay_code)
+		VALUES(#{pro_price}, #{pay_ea}, #{pro_code}, #{pay_code})
+	</insert>
+
+	<!-- <select id="detail_pay" parameterType="map" resultType="map"> SELECT 
+		p.pay_code, mem_name, pay_date, pro_name, pay_ea, pd.pro_price "금액", sum(pay_ea*pd.pro_price)-NVL(e.discount_price,0) 
+		"결제금액", e.discount_price "할인금액", pay_method, pay_status FROM payment p, payment_detail 
+		pd, member m, product pr, event e <where> AND m.mem_code = p.mem_code AND 
+		p.pay_code = pd.pay_code AND p.eve_code = e.eve_code(+) AND pr.pro_code = 
+		pd.pro_code AND p.pay_code= #{pay_code} AND P.STO_CODE = #{sto_code} </where> 
+		GROUP BY p.pay_code, mem_name, pay_date, pro_name, pay_ea, pd.pro_price,discount_price 
+		,pay_method,pay_status </select> -->
+
+
+	<resultMap id="pay_detail" type="hashmap"></resultMap>
+	<select id="detail_pay" parameterType="map"
+		statementType="CALLABLE">
+		{call pay_detail(#{mem_code, jdbcType=INTEGER},
+		#{pay_code, jdbcType=INTEGER},
+		#{detail_pay,
+		jdbcType=CURSOR,
+		mode=OUT,
+		javaType=java.sql.ResultSet,
+		resultMap=pay_detail}
+		)
+		}
+	</select>
+	 
+	<!--  <select id="find_event" parameterType="map" resultType="map">
+     SELECT E.eve_code, eve_name, eve_des, eve_start, eve_end, discount_for, discount_price 
+         FROM event E JOIN STORE s
+             ON E.sto_code = s.sto_code
+             <where>
+             TO_CHAR(sysdate, 'YYYY/MM/DD') BETWEEN E.eve_start AND E.eve_end
+                AND s.sto_code = #{sto_code}
+                AND E.discount_for >= #{total_price}
+             </where>
+	 </select> -->
+	 
+	 <!-- 구매내역 show_pay  -->
+	<resultMap id="ref_payhistory" type="hashmap"></resultMap>
+	<select id="show_pay" parameterType="map"
+		statementType="CALLABLE">
+		{call payhistory(#{mem_code, jdbcType=INTEGER},
+		#{show_pay,
+		jdbcType=CURSOR,
+		mode=OUT,
+		javaType=java.sql.ResultSet,
+		resultMap=ref_payhistory}
+		)
+		}
+	</select>
+</mapper>

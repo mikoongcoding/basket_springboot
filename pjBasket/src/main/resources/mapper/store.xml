@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mybatis.sql">
+	<insert id="set_favsto" parameterType="map">
+		INSERT INTO fav_store (sto_code, mem_code)
+		VALUES (#{sto_code}, #{mem_code})
+	</insert>
+
+	<delete id="del_favsto" parameterType="map">
+		DELETE FROM fav_store 
+		WHERE sto_code = #{sto_code}
+		AND mem_code = #{mem_code}
+	</delete>
+
+	
+
+<select id="sto_code" parameterType="map" resultType="map">
+	SELECT sto_name, sto_tel, sto_addr, sto_time
+	FROM store
+	WHERE sto_addr LIKE  '%'|| #{sto_addr} || '%'
+</select>
+
+	<!--지도에서 근처가까운 매장표시.  -->
+<resultMap id="rfc_find_sto" type="hashmap"></resultMap>
+	<select id="find_sto" parameterType="map" statementType="CALLABLE">
+		{call store_find_sto(#{p_lng, jdbcType=INTEGER},
+							#{p_lat, jdbcType=INTEGER},
+							#{p_km, jdbcType=INTEGER},
+						  	#{find_sto, 
+							jdbcType=CURSOR, 
+							mode=OUT, 
+							javaType=java.sql.ResultSet, 
+							resultMap=rfc_find_sto}
+		)
+		}
+	</select>
+	<!--지도에서 근처가까운 매장표시.  -->
+	
+<resultMap id="fav_store" type="hashmap"></resultMap>
+	<select id="sto_info" parameterType="map" statementType="CALLABLE">
+		{call fav_stolist(#{mem_code, jdbcType=INTEGER},
+						  	#{sto_info, 
+							jdbcType=CURSOR, 
+							mode=OUT, 
+							javaType=java.sql.ResultSet, 
+							resultMap=fav_store}
+		)
+		}
+	</select>
+
+
+</mapper>

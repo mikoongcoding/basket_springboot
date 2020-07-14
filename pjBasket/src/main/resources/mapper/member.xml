@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mybatis.sql">
+
+	<!-- 바스켓앱 회원 로그인 -->
+	<resultMap id="mem_info" type="hashmap"></resultMap>
+	<select id="login_mem" parameterType="map"
+		statementType="CALLABLE">
+		{call member_login(
+		#{mem_email},
+		#{mem_pw},
+		#{login_mem,
+		jdbcType=CURSOR,
+		mode=OUT,
+		javaType=java.sql.ResultSet,
+		resultMap=mem_info}
+		)
+		}
+	</select>
+
+	<select id="mem_search" parameterType="map" resultType="map">
+		SELECT m.mem_code, mem_email , mem_name, mem_tel
+		FROM member m,
+		member_detail md
+		WHERE m.mem_code = md.mem_code
+		<if test="mem_name != null">
+			AND mem_name LIKE '%'|| #{mem_name} ||'%'
+		</if>
+		<if test="mem_tel !=null">
+			AND mem_tel LIKE '%'|| #{mem_tel}||'%'
+		</if>
+		ORDER BY m.mem_code
+	</select>
+
+	<!-- 모든매장이 아닌 해당 매장을 이용한 회원의 구매내역이므로 sto_code도 조건문에 포함 -->
+	<select id="mem_payList" parameterType="map" resultType="map">
+		SELECT p.pay_code, MAX(pro_name)||' 외 ' || (COUNT(pd.pay_code)-1) || '
+		건 ' as pro_name , SUM(pd.pro_price*pay_ea) as money, pay_status,
+		pay_date,p.mem_code
+		FROM payment p
+		JOIN member m
+		ON P.MEM_CODE =
+		M.MEM_CODE
+		JOIN Payment_detail pd
+		ON P.PAY_CODE = PD.PAY_CODE
+		JOIN
+		product pro
+		ON PRO.PRO_CODE = PD.PRO_CODE
+		<where>
+			p.pay_date between #{start_date} and #{end_date}
+			<if test="mem_code!=null and mem_code.length > 0">
+				AND m.mem_code = #{mem_code}
+			</if>
+			<if test="pro_name!=null and pro_name.length > 0">
+				AND pro.pro_name LIKE '%'|| #{pro_name} ||'%'
+			</if>
+			<if test="pro_code!=null and pro_code.length > 0">
+				AND pro.pro_code LIKE '%'||#{pro_code}||'%'
+			</if>
+		</where> 
+		GROUP BY p.pay_code,pay_status, pay_date,p.mem_code
+	</select>
+
+	<select id="mem_receipt" parameterType="map" resultType="map">
+		SELECT payment.pay_date,product.pro_code, product.pro_name, product.pro_price,
+		payment_detail.pay_ea , product.pro_price * payment_detail.pay_ea as
+		price
+		FROM member
+		join payment
+		on member.mem_code = payment.mem_code
+		join
+		payment_detail
+		on payment.pay_code = payment_detail.pay_code
+		join
+		product
+		on payment_detail.pro_code = product.pro_code
+		<where>
+			AND payment.pay_code = #{pay_code}
+		</where>
+	</select>
+
+	<insert id="mem_insert" useGeneratedKeys="true"
+		keyProperty="mem_code" parameterType="map">
+		<selectKey keyProperty="mem_code" resultType="int"
+			order="BEFORE">
+			SELECT seq_mem.NEXTVAL mem_code
+			FROM dual
+		</selectKey>
+		INSERT INTO member (mem_pw, mem_name, mem_code, mem_email, is_del,
+		age)
+		VALUES(#{mem_pw}, #{mem_name}, #{mem_code}, #{mem_email}, 0,
+		#{age})
+	</insert>
+
+	<insert id="memd_insert" parameterType="map">
+		INSERT INTO member_detail
+		(mem_code, mem_gender, mem_birth, mem_tel)
+		VALUES(#{mem_code},
+		#{mem_gender}, #{mem_birth}, #{mem_tel})
+	</insert>
+
+	<insert id="join_mem" useGeneratedKeys="true"
+		keyProperty="mem_code" parameterType="map">
+		<selectKey keyProperty="mem_code" resultType="int"
+			order="BEFORE">
+			SELECT seq_mem.NEXTVAL mem_code
+			FROM dual
+		</selectKey>
+		INSERT INTO member (mem_pw, mem_name, mem_code, mem_email, is_del,
+		age)
+		VALUES(#{mem_pw}, #{mem_name}, #{mem_code}, #{mem_email}, 0,
+		#{age})
+	</insert>
+	<insert id="join_memd" parameterType="map">
+		INSERT INTO member_detail
+		(mem_code, mem_gender, mem_birth, mem_tel)
+		VALUES(#{mem_code},
+		#{mem_gender}, #{mem_birth}, #{mem_tel})
+	</insert>
+
+	<update id="upd_mem" parameterType="map">
+		UPDATE member
+		SET mem_email = #{mem_email}
+		mem_pw = #{mem_pw}
+		mem_name = #{mem_name}
+		WHERE mem_code = #{mem_code}
+	</update>
+
+	<update id="upd_memd" parameterType="map">
+		UPDATE member_detail SET mem_gender = #{mem_gender}
+		mem_birth = #{mem_birth}
+		mem_tel = #{mem_tel}
+		WHERE mem_code = #{mem_code}
+	</update>
+
+	<select id="proc_login_bil" parameterType="map"
+		statementType="CALLABLE">
+		{call proc_login_bil(
+		#{mem_email},
+		#{mem_pw},
+		#{proc_login_bil,
+		jdbcType=CURSOR,
+		mode=OUT,
+		javaType=java.sql.ResultSet,
+		resultMap=mem_info}
+		)
+		}
+	</select>
+
+	<select id="proc_login_social" parameterType="map"
+		statementType="CALLABLE">
+		{call proc_login_social(
+		#{mem_email},
+		#{mem_name},
+		#{mem_age},
+		#{mem_gender},
+		#{mem_birth},
+		#{mem_entrance},
+		#{proc_login_social,
+		jdbcType=CURSOR,
+		mode=OUT,
+		javaType=java.sql.ResultSet,
+		resultMap=mem_info}
+		)
+		}
+	</select>
+
+	<!-- <select id="login_mem" parameterType="map" resultType="map"> -->
+	<!-- SELECT m.mem_code, mem_email, mem_name, mem_pw, age, mem_gender, mem_birth, 
+		mem_tel -->
+	<!-- FROM member m JOIN member_detail md -->
+	<!-- ON M.MEM_CODE = MD.MEM_CODE -->
+	<!-- <where> -->
+	<!-- AND mem_email = #{mem_email} -->
+	<!-- AND mem_pw = #{mem_pw} -->
+	<!-- </where> -->
+	<!-- </select> -->
+	
+	 <update id="pay_cancel">
+	 	UPDATE payment SET pay_status='결제취소'
+	 	WHERE pay_code = #{pay_code}
+	 </update>
+
+</mapper>

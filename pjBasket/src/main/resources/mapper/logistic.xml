@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mybatis.sql">
+
+	<insert id="pur_insert" parameterType="map">
+		<selectKey order="BEFORE" resultType="int"
+			keyProperty="pur_code" >
+			SELECT seq_pur.NEXTVAL FROM dual
+		</selectKey>
+		INSERT INTO purchasing (pur_code, sup_code, pur_date, pur_price,
+		pur_ea, pro_code)
+		VALUES(#{pur_code}, #{sup_code}, #{pur_date}, #{pur_price}, #{pur_ea}, #{pro_code})
+	</insert>
+	<insert id="pay_insert2" parameterType="map">
+		INSERT INTO payment
+		(mem_code, pay_date, pay_method, pay_status,
+		pay_code, sto_code)
+		VALUES(#{mem_code},
+		#{p_date}
+		,#{pay_method},
+		#{pay_status}, #{pay_code}, #{sto_code})
+	</insert>
+	<!-- 재고현황 조회 sto_search -->
+	<!-- <select id="sto_search" parameterType="map" resultType="map"> <![CDATA[ 
+		SELECT nvl(pur.pur_date, pay.pay_date) as stock_date, pro.pro_code as pro_code, 
+		pro.pro_name as pro_name , pro.pro_price as pro_price, pur.pur_ea as pur_ea, 
+		payd.pay_ea as pay_ea , prod.pro_stock_ea - (SELECT nvl(sum(pur_ea), 0) FROM 
+		PURCHASING WHERE pur_date < nvl(pur.pur_date, pay.pay_date)) + (SELECT nvl(sum(pay_ea), 
+		0) FROM PAYMENT_DETAIL WHERE pay_date < nvl(pur.pur_date, pay.pay_date)) 
+		as stock_ea FROM PRODUCT pro JOIN PRODUCT_DETAIL prod ON pro.pro_code = prod.pro_code 
+		LEFT JOIN PURCHASING pur ON pro.pro_code = pur.pro_code LEFT JOIN PAYMENT_DETAIL 
+		payd ON pro.pro_code = payd.pro_code JOIN PAYMENT pay ON payd.pay_code = 
+		pay.pay_code ]]> <where> <if test="pro_code != null and pro_code.length > 
+		0"> pro.pro_code = #{pro_code} </if> <if test="pro_name != null and pro_name.length 
+		> 0"> AND pro.pro_name LIKE '%'||#{pro_name}||'%' </if> <if test="start_date 
+		!= null and end_date != null"> AND nvl(pur.pur_date, pay.pay_date) BETWEEN 
+		#{start_date} AND #{end_date} </if> AND pro.sto_code = #{sto_code} </where> 
+		GROUP BY pur.pur_date, pay.pay_date, pro.pro_code, pro.pro_name, prod.pro_stock_ea, 
+		pro.pro_price, pur_ea, pay_ea </select> -->
+
+	<resultMap id="stock_list" type="hashmap"></resultMap>
+	<select id="sto_search" parameterType="map"
+		statementType="CALLABLE">
+		{call stocklist(#{sto_code, jdbcType=INTEGER},
+		#{pro_code, jdbcType=INTEGER},
+		#{pro_name, jdbcType=VARCHAR},
+		#{start_date, jdbcType=VARCHAR},
+		#{end_date, jdbcType=VARCHAR},
+		#{sto_search,
+		jdbcType=CURSOR,
+		mode=OUT,
+		javaType=java.sql.ResultSet,
+		resultMap=stock_list}
+		)
+		}
+	</select>
+
+	<!-- <select id="war_search" parameterType="map" resultType="map"> SELECT 
+		A.pur_date , A.PRO_CODE , B.pro_name ,s.sup_name , A.pur_ea ,A.pur_price 
+		, A.pur_ea*A.pur_price as money FROM purchasing A JOIN product B ON A.pro_code 
+		= B.pro_code JOIN supplier s ON B.sup_code = s.sup_code <where> <if test="pro_name 
+		!=null"> OR b.PRO_name LIKE '%'|| #{pro_name} ||'%' </if> AND A.pro_code 
+		= b.pro_code AND A.pur_date BETWEEN #{start_date} AND #{end_date} AND A.sto_code 
+		= #{sto_code} </where> </select> -->
+
+	<resultMap id="war_list" type="hashmap"></resultMap>
+	<select id="war_search" parameterType="map"
+		statementType="CALLABLE">
+		{call war_search(#{sto_code, jdbcType=INTEGER},
+		#{pro_code, jdbcType=INTEGER},
+		#{pro_name, jdbcType=VARCHAR},
+		#{start_date, jdbcType=VARCHAR},
+		#{end_date, jdbcType=VARCHAR},
+		#{war_search,
+		jdbcType=CURSOR,
+		mode=OUT,
+		javaType=java.sql.ResultSet,
+		resultMap=war_list}
+		)
+		}
+	</select>
+
+
+</mapper>

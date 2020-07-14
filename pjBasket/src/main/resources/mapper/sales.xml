@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mybatis.sql">
+<!-- 날짜는 화면단에서부터 '2020/06/22' 문자열로 들어온다 DB에도 같은 문자열로 저장된다 
+<select id="sal_search" parameterType="map" resultType="map">
+ SELECT pa.pay_date, pr.pro_code, pr.pro_name, pr.pro_price, 
+        pd.pay_ea, pr.pro_price*pd.pay_ea
+  FROM payment pa JOIN payment_detail pd
+  ON pa.pay_code = pd.pay_code
+  JOIN product pr
+  ON pr.pro_code = pd.pro_code
+  <where>
+	<if test="pro_name != null and pro_name.length > 0">  
+  pr.pro_name LIKE '%'||#{pro_name}||'%'
+  	</if>
+  	<if test="pro_code != null and pro_code.length > 0">
+  AND pd.pro_code = #{pro_code}
+  	</if>
+  	<if test="start_date != null and start_date.length > 0">
+  AND pa.pay_date BETWEEN #{start_date}
+  	</if>
+  	<if test="end_date != null and end_date.length > 0">
+  AND #{end_date}
+  	</if>
+  AND pr.sto_code = #{sto_code} 
+
+  </where>
+</select>
+-->
+
+<resultMap id="sal_list" type="hashmap"></resultMap>
+<select id="sal_search" parameterType="map" statementType="CALLABLE">
+	{call sal_search(#{sto_code, jdbcType=INTEGER},
+				     #{pro_code, jdbcType=INTEGER},
+					  #{pro_name, jdbcType=VARCHAR},
+					  #{start_date, jdbcType=VARCHAR},
+					  #{end_date, jdbcType=VARCHAR},
+					 #{sal_search, 
+					    jdbcType=CURSOR, 
+						mode=OUT, 
+						javaType=java.sql.ResultSet, 
+						resultMap=sal_list}
+	)
+	}
+</select>
+
+</mapper>

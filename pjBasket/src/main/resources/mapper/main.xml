@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mybatis.sql">
+   <!--한달간 많이 팔린 품목 -->
+   <select id="main_graph" parameterType="map" resultType="map">
+      SELECT pro_name, money FROM (
+      SELECT pro.pro_name, sum(payd.pro_price * payd.pay_ea) AS money
+      FROM PAYMENT pay
+      JOIN PAYMENT_DETAIL payd
+      ON pay.pay_code = payd.pay_code
+      JOIN PRODUCT pro
+      ON payd.pro_code = pro.pro_code
+      JOIN PRODUCT_DETAIL prod
+      ON pro.pro_code = prod.pro_code
+      <where>
+         AND pay.pay_date BETWEEN to_char(add_months(sysdate, -1), 'YYYY/MM/DD')
+         AND to_char(sysdate, 'YYYY/MM/DD')
+         AND pay.sto_code = #{sto_code}
+      </where>
+      GROUP BY pro.pro_name)
+<![CDATA[WHERE ROWNUM < 6]]>
+      ORDER BY money desc
+   </select>
+
+
+   <select id="main_money" parameterType="map" resultType="map">
+
+      SELECT nvl((SELECT sum(payd.pro_price * pay_ea)
+      FROM payment pay
+      JOIN payment_detail payd
+      ON pay.pay_code = payd.pay_code
+      JOIN product pro
+      ON payd.pro_code = pro.pro_code
+      <where>
+         AND pay.sto_code = #{sto_code}
+         AND pay_date = to_char(sysdate, 'YYYY/MM/DD')), 0) today
+      </where>
+      FROM dual
+   </select>
+
+
+
+
+
+
+   <resultMap id="admin_info" type="hashmap"></resultMap>
+   <select id="admin_login" parameterType="map"
+      statementType="CALLABLE">
+      {call admin_login(#{admin_id, jdbcType=VARCHAR},
+      #{admin_pw, jdbcType=VARCHAR},
+      #{admin_login,
+      jdbcType=CURSOR,
+      mode=OUT,
+      javaType=java.sql.ResultSet,
+      resultMap=admin_info}
+      )
+      }
+   </select>
+
+   <select id="main_graph2" parameterType="map" resultType="map">
+      SELECT pay_date, sum(pro_price * pay_ea) as money
+      FROM payment P
+      JOIN payment_detail pd
+      ON P.pay_code = pd.pay_code
+      <where>
+         AND P.pay_date BETWEEN to_char(sysdate, 'YYYY/MM/') || '01' AND
+         to_char(sysdate, 'YYYY/MM/DD')
+         AND p.sto_code = #{sto_code}
+      </where>
+      GROUP BY pay_date
+   </select>
+
+   <select id="main_graph3" parameterType="map" resultType="map">
+      SELECT
+      dy
+      ,nvl(sum((SELECT cnt||'' FROM dual WHERE cases = '10대 여자')), 0) "10대 여자"
+      ,nvl(sum((SELECT cnt||'' FROM dual WHERE cases = '10대 남자')), 0) "10대
+      남자"
+      ,nvl(sum((SELECT cnt||'' FROM dual WHERE cases = '20대 여자')), 0) "20대 여자"
+      ,nvl(sum((SELECT cnt||'' FROM dual WHERE cases = '20대 남자')), 0) "20대
+      남자"
+      ,nvl(sum((SELECT cnt||'' FROM dual WHERE cases = '30대 여자')), 0) "30대 여자"
+      ,nvl(sum((SELECT cnt||'' FROM dual WHERE cases = '30대 남자')), 0) "30대
+      남자"
+      ,nvl(sum((SELECT cnt||'' FROM dual WHERE cases = '40대 여자')), 0) "40대 여자"
+      ,nvl(sum((SELECT cnt||'' FROM dual WHERE cases = '40대 남자')), 0) "40대
+      남자"
+      ,nvl(sum((SELECT cnt||'' FROM dual WHERE cases = '50대 여자')), 0) "50대 여자"
+      ,nvl(sum((SELECT cnt||'' FROM dual WHERE cases = '50대 남자')), 0) "50대
+      남자"
+      ,nvl(sum((SELECT cnt||'' FROM dual WHERE cases = '60대 여자')), 0) "60대 여자"
+      ,nvl(sum((SELECT cnt||'' FROM dual WHERE cases = '60대 남자')), 0) "60대
+      남자"
+      FROM (
+      SELECT pay.pay_date pd, to_char(to_date(pay.pay_date), 'dy') dy, mem_age ||
+      '0대 ' || memd.mem_gender || '자' cases, count(pay_code) cnt
+      FROM PAYMENT pay
+      JOIN MEMBER mem
+      ON pay.mem_code = mem.mem_code
+      JOIN MEMBER_DETAIL memd
+      ON mem.mem_code = memd.mem_code
+      <where>
+         AND pay.sto_code = 1
+         AND pay.pay_date BETWEEN to_char(sysdate - 7, 'YYYY/MM/DD') AND
+         to_char(sysdate, 'YYYY/MM/DD')
+      </where>
+      GROUP BY mem_age, memd.mem_gender, pay.pay_date)
+      GROUP BY dy, pd
+      ORDER BY pd
+
+   </select>
+
+   <select id="main_graph4" parameterType="map" resultType="map">
+      SELECT '입출고현황' as ic, sum(pur_price * pur_ea) buymoney, sum(payd.pro_price *
+      payd.pay_ea) soldmoney
+      FROM PRODUCT pro
+      LEFT OUTER JOIN PAYMENT_DETAIL payd
+      ON pro.pro_code = payd.pro_code
+      LEFT OUTER JOIN PAYMENT pay
+      ON pay.pay_code = payd.pay_code
+      LEFT OUTER JOIN PURCHASING pur
+      ON pro.pro_code = pur.pro_code
+      WHERE nvl(pur.pur_date, pay.pay_date) BETWEEN to_char(add_months(sysdate,
+      -1)) AND to_char(sysdate, 'YYYY/MM/DD')
+      AND pay.sto_code = #{sto_code}
+   </select>
+
+
+</mapper>
